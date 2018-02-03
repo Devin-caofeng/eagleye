@@ -44,7 +44,7 @@ int SetNonblock(int fd);
 int InitOption(int argc, char *argv[]);
 int InitSignal();
 int ParseConf(const char *path);
-int CheckLogin(int fd);
+int CheckLoginRequest(int fd, UserInfo *user_info);
 int ListenLogin();
 
 
@@ -64,12 +64,11 @@ int main(int argc, char *argv[]) {
         if (OpenLog(log_file, "o_cat") < 0) return -1;
     }
 
-
     StartScanDirThread(NULL);
 
-    ListenLogin();
-
     StartSendThread();
+
+    ListenLogin();
 
     return 0;
 }
@@ -105,7 +104,7 @@ int InitSignal() {
 
 int ParseConf(const char *path) {
     if (path == NULL) {
-        printf("config paht is null\n");
+        printf("config path is null\n");
         return -1;
     }
 
@@ -141,7 +140,20 @@ int ParseConf(const char *path) {
     return 0;
 }
 
-int CheckLoginRequest(int sockfd) {
+/*
+ * 功能：检测用户登录请求
+ *     1. 接收用户登录请求头
+ *     2. 判断此请求是否为登录请求，如不是直接返回-1
+ *     3. 接收用户登录信息
+ *     4。查询数据库，验证登录信息
+ *     5。
+ *     6。向用户发送登录成功信息
+ *
+ * 返回值:
+ *      0 表示成功
+ *     -1 表示失败
+ */
+int CheckLoginRequest(int sockfd, UserInfo *user_info) {
     ReqHead req_head;
     if (Recv(sockfd, (char *)&req_head, sizeof(req_head), 0) < 0) {
         ERR("recv request head error!");
@@ -155,6 +167,7 @@ int CheckLoginRequest(int sockfd) {
         return -1;
     }
     DBG("login client:[%s-%s]", req_login.user_name, req_login.user_passwd);
+    strcpy(user_info->dir, req_login.user_path);
     // 从数据库中查询
 
     ReqHead rsp_comm;
@@ -168,6 +181,10 @@ int CheckLoginRequest(int sockfd) {
     return 0;
 }
 
+/*
+ * 功能：监听用户登录过程
+ *
+ */
 int ListenLogin() {
     int listenfd = Socket(AF_INET, SOCK_STREAM, 0);
     socklen_t option = 1;
@@ -176,7 +193,7 @@ int ListenLogin() {
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
     inet_pton(AF_INET, serv_ip, &serv_addr.sin_addr);
-    serv_addr.sin_port = serv_port;
+    serv_addr.sin_port = htons(serv_port);
 
     Bind(listenfd, (SA *)&serv_addr, sizeof(serv_addr));
 
@@ -198,16 +215,21 @@ int ListenLogin() {
     while (1) {
         List *cur_list_node = NULL;
         UserInfo *cur_user_info = NULL;
+
+        // 遍历还未成功登录的用户链表
         for (cur_list_node = no_login;
                  cur_list_node != NULL;
                  cur_list_node = cur_list_node->next) {
             cur_user_info = (UserInfo *)cur_list_node->data;
             time_t t = time(NULL);
-            if ((t - cur_user_info->conn_time) > 3) {
+
+            // 建立连接后，三秒内还未成功登录则从监听描述符集合中删除，并关闭
+            // 此用户打开的文件描述符，最后从未成功登录链表中移除
+            if ((t - cur_user_info->conn_time) > 66) {
                 epoll_ctl(epollfd, EPOLL_CTL_DEL, cur_user_info->sock_fd, NULL);
                 close(cur_user_info->file_fd);
-                no_login = DelFromList(no_login, cur_list_node);
-                free(cur_user_info);
+                free(cur_user_info->ptr);
+                no_login = DelFromList(no_login, cur_user_info);
                 ERR("client login time out");
             }
         }
@@ -222,6 +244,7 @@ int ListenLogin() {
         }
 
         int i;
+        // 遍历有事件发生的描述符集合
         for (i = 0; i < nfds; ++i) {
             if (events[i].data.fd == listenfd) {
                 struct sockaddr_in cli_addr;
@@ -243,14 +266,15 @@ int ListenLogin() {
             }
             else if (events[i].events & EPOLLIN) {
                 UserInfo *new_user = (UserInfo *)events[i].data.ptr;
-                if (CheckLoginRequest(new_user->sock_fd) < 0) {
+                if (CheckLoginRequest(new_user->sock_fd, new_user) < 0) {
                     epoll_ctl(epollfd, EPOLL_CTL_DEL, new_user->sock_fd, NULL);
                     close(new_user->file_fd);
                     no_login = DelFromList(no_login, new_user);
                     free(new_user);
                 }
-                epoll_ctl(epollfd, EPOLL_CTL_DEL, new_user->sock_fd, NULL);
+                no_login = DelFromList(no_login, new_user);
                 login_send = AddToListTail(login_send, new_user);
+                epoll_ctl(epollfd, EPOLL_CTL_DEL, new_user->sock_fd, NULL);
             }
             else {
                 UserInfo *new_user = (UserInfo *)events[i].data.ptr;

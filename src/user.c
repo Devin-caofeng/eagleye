@@ -13,10 +13,10 @@ UserInfo *AddUser() {
     InitQueue(new_user->free_que, char, 100);
     InitQueue(new_user->busy_que, char, 100);
 
-    char *ptr = (char *)malloc(BLOCK_SIZE * 100);
+    new_user->ptr = (char *)malloc(BLOCK_SIZE * 100);
     int i = 0;
     for (i = 0; i < 100; ++i) {
-        WriteOne(new_user->free_que, char, ptr + i * BLOCK_SIZE);
+        WriteOne(new_user->free_que, char, new_user->ptr + i * BLOCK_SIZE);
     }
 
     strcpy(new_user->dir, "/home/cf/git/monitor/log");

@@ -30,6 +30,7 @@ typedef struct {
 
     Queue *free_que;
     Queue *busy_que;
+    char *ptr;
 } UserInfo;
 
 

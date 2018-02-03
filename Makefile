@@ -6,7 +6,7 @@ SRC = $(wildcard $(DIR)/*.c)
 OBJ = $(patsubst %.c, %.o, $(SRC))
 
 # lmydynmic = ./bin/libmydynmic.so
-BIN = ./eagleye ./cli
+BIN = ./serv ./cli
 
 all:$(BIN)
 
@@ -18,7 +18,7 @@ eagleye_need = $(DIR)/log.o $(DIR)/wrap.o $(DIR)/user.o $(DIR)/list.o \
 
 cli_need = $(DIR)/cli.o $(DIR)/wrap.o
 
-./eagleye:$(eagleye_need)
+./serv:$(eagleye_need)
 	$(CC) -o $@ $^ $(LFLAG)
 
 ./cli:$(cli_need)

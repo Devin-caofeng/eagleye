@@ -1,23 +1,22 @@
 #include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include <sys/stat.h>
-#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <sys/epoll.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <pthread.h>
-#include <zlog.h>
+#include <sys/socket.h>
 
-#include "../include/monitor.h"
-#include "../include/queue.h"
+#include "../include/log.h"
 #include "../include/list.h"
 #include "../include/user.h"
 #include "../include/wrap.h"
-#include "../include/log.h"
+#include "../include/queue.h"
+#include "../include/monitor.h"
 
 #define EPOLL_SIZE 65535
 #define BUF_LEN    4096
@@ -43,7 +42,7 @@ int SendHead(UserInfo *user_info_node) {
     req_head.len = sizeof(ReqFile);
 
     if (Send(user_info_node->sock_fd,
-                (char *)&req_head, sizeof(req_head), 0) < 0) {
+             (char *)&req_head, sizeof(req_head), 0) < 0) {
         ERR("send file common head error");
         WriteOne(user_info_node->free_que, char, file_name);
         return -1;
@@ -55,7 +54,7 @@ int SendHead(UserInfo *user_info_node) {
     memcpy(req_file.path, file_name, strlen(file_name));
 
     if (Send(user_info_node->sock_fd,
-                (char *)&req_file, req_head.len, 0) < 0) {
+             (char *)&req_file, req_head.len, 0) < 0) {
         ERR("send file:[%s] head error", req_file.path);
         WriteOne(user_info_node->free_que, char, file_name);
         return -1;
@@ -87,10 +86,11 @@ void *DoSend(void *ptr) {
                 cur_list_node != NULL; cur_list_node = cur_list_node->next) {
             cur_user_info = (UserInfo *)cur_list_node->data;
             if (cur_user_info->is_start == STOP) {
+                cur_user_info->is_start = START;
                 event.data.ptr = cur_user_info;
                 event.events = EPOLLIN;
                 epoll_ctl(epollfd, EPOLL_CTL_ADD,
-                        cur_user_info->sock_fd, &event);
+                          cur_user_info->sock_fd, &event);
             }
         }
 
@@ -161,7 +161,7 @@ void *DoSend(void *ptr) {
 
             DBG("file:[%s] send success!", cur_user_info->send_file_name);
             unlink(cur_user_info->send_file_name);
-            cur_user_info->send_flag = SEND_OVER;
+            cur_user_info->send_flag = SEND_HEAD;
         }
     }
 

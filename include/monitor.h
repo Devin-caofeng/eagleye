@@ -29,6 +29,7 @@ typedef struct {
 typedef struct {
     char user_name[NAME_LEN];
     char user_passwd[PASSWD_LEN];
+    char user_path[PATH_LEN];
 } ReqLogin;
 
 // 文件信息

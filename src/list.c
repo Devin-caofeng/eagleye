@@ -48,22 +48,47 @@ List *AddToListHead(List *head, void *data) {
 }
 
 List *DelFromList(List *head, void *data) {
-    if (head == NULL) return NULL;
+    List *list;
+    List *tmp;
 
-    List *new_head = head;
-    List *cur = head;
-    for (; cur != NULL; cur = cur->next) {
-        if (cur->data == data) {
-            if (head->data == data) new_head = head->next;
-
-            List *temp = cur;
-            cur->next->prev = cur->prev;
-            cur->prev->next = cur->next;
-            free(temp);
+    if (head == NULL) {
+        return NULL;
+    }
+    tmp = head;
+    while(tmp->next) tmp = tmp->next;
+    ForEachList(tmp, list) {
+        if (list->data == data) {
+            //若当前节点就是头结点，则将当前节点的下一个节点返回作为头结点
+            if (list == tmp) {
+                tmp = list->next;
+            }
+            //若当前节点的上一个节点存在则将链表补全，即下一个的指针指向当前节点的下一个处
+            if (list->prev) {
+                list->prev->next = list->next;
+            }
+            //若当前节点的下一个节点存在则将链表补全，即上一个的指针指向当前节点的上一个处
+            if (list->next) {
+                list->next->prev = list->prev;
+            }
+            //释放当前节点,注意：并未释放当前节点中data的空间,需要手动释放data的空间
+//            free(list->data);
+            free(list);
+            break;
         }
     }
 
-    return new_head;
+            /* if (cur == head) {           */
+            /*     new_head = head->next;   */
+            /*     cur->next->prev = NULL;  */
+            /*     free(cur->data);         */
+            /*     free(cur);               */
+            /* }                            */
+            /* List *temp = cur;            */
+            /* cur->next->prev = cur->prev; */
+            /* cur->prev->next = cur->next; */
+            /* free(temp->data);            */
+            /* free(temp);                  */
+    return tmp;
 }
 
 List *DestroyList(List *head) {

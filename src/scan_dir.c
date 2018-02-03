@@ -7,12 +7,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "../include/scan_dir.h"
-#include "../include/monitor.h"
-#include "../include/queue.h"
-#include "../include/user.h"
-#include "../include/list.h"
 #include "../include/log.h"
+#include "../include/list.h"
+#include "../include/user.h"
+#include "../include/queue.h"
+#include "../include/monitor.h"
+#include "../include/scan_dir.h"
 
 #define CMD_LEN 1024
 
@@ -26,6 +26,8 @@ static int CheckIsUse(const char *file) {
     char ret[BUF_LEN];
     memset(ret, '\0', sizeof(ret));
     fread(ret, sizeof(ret), 1, fp);
+
+    pclose(fp);
 
     if (ret[strlen(ret) - 2] != ':') return 0;
     else return -1;
@@ -58,7 +60,7 @@ static int ScanDir(const char *path, UserInfo *head) {
 
         if (CheckIsUse(buf) != 0) {
             char *ptr = NULL;
-            if (!ReadOne(head->busy_que, char, ptr)) {
+            if (!ReadOne(head->free_que, char, ptr)) {
                 closedir(dir);
                 return 0;
             }
@@ -83,7 +85,10 @@ static void *DoScanDir(void *ptr) {
                 cur_list != NULL; cur_list = cur_list->next) {
             cur_user_info = (UserInfo *)cur_list->data;
             ScanDir(cur_user_info->dir, cur_user_info);
+//            ScanDir("/home/cf/git/monitor/log", cur_user_info);
+            sleep(1);
         }
+
     }
 
     return ptr;
@@ -98,4 +103,3 @@ int StartScanDirThread(const char *path) {
 
     return 0;
 }
-
