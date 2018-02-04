@@ -10,12 +10,11 @@
 #include "../include/ctrl.h"
 
 
-static struct Command head = { "", NULL };
+static Command head = { "", NULL };
 
 
 static int addCommand(const char *name) {
-    struct Command *new_command =
-        (struct Command *)malloc(sizeof(struct Command));
+    Command *new_command = (Command *)malloc(sizeof(Command));
     if (new_command == NULL) {
         return -1;
     }
@@ -45,7 +44,7 @@ static int ctrl() {
     while (1) {
         memset(command, 0, sizeof(command));
         if (read(command_fd, command, sizeof(command)) > 0) {
-            struct Command *cur = head.next;
+            Command *cur = head.next;
             while (cur) {
                 if (strncasecmp(command, cur->name,
                                 strlen(cur->name) * sizeof(char)) == 0) {

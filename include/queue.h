@@ -46,8 +46,5 @@ typedef struct queue {
 #define WriteOne(head, T, V) \
     (CanWrite(head) ? (GetWrite(head, T) = (T *)(V), WriteForward(head), 1) : 0)
 
-/* #define T \
-     ((T *)(((head)->block)[(head)->write])) = (T *)(V) */
-
 
 #endif /* QUEUE_H__ */

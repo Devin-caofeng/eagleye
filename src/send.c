@@ -18,9 +18,6 @@
 #include "../include/queue.h"
 #include "../include/monitor.h"
 
-#define EPOLL_SIZE 65535
-#define BUF_LEN    4096
-#define TIME_WAIT  3000
 
 int SendHead(UserInfo *user_info_node) {
     char *file_name= NULL;
@@ -100,10 +97,16 @@ void *DoSend(void *ptr) {
             if (cur_user_info->is_start == START) {
                 struct stat st;
                 stat(cur_user_info->send_file_name, &st);
-                int file_size = st.st_size;
-                int ret = 0;
-                int send_len = 0;
-                char buf[BUF_LEN];
+                char *file_name = cur_user_info->send_file_name;
+
+                char cmd[CMD_LEN];
+                sprintf(cmd, "fdfs_upload_file /etc/fdfs/client.conf %s",
+                        file_name);
+                FILE *fp;
+                /* int file_size = st.st_size; */
+                /* int ret = 0;                */
+                /* int send_len = 0;           */
+                /* char buf[BUF_LEN];          */
                 switch (cur_user_info->send_flag) {
                     case SEND_HEAD:
                         if (SendHead(cur_user_info) < 0) {
@@ -111,19 +114,29 @@ void *DoSend(void *ptr) {
                         }
                         break;
                     case SEND_BODY:
-                        while (send_len < file_size) {
-                            memset(buf, '\0', BUF_LEN);
-                            ret = ReadN(cur_user_info->file_fd, buf, BUF_LEN);
-                            if (ret == 0) {
-                                close(cur_user_info->file_fd);
-                                cur_user_info->send_flag = SEND_OVER;
-                                break;
-                            }
-                            if (Send(cur_user_info->sock_fd, buf, ret, 0)) {
+                        fp = popen(cmd, "r");
+                        char ret[BUF_LEN];
+                        memset(ret, '\0', sizeof(ret));
+                        fread(ret, sizeof(ret), 1, fp);
+                        pclose(fp);
 
-                            }
-                            send_len += ret;
-                        }
+                        printf("%s--->", file_name);
+                        printf("%s", ret);
+                        cur_user_info->send_flag = SEND_OVER;
+
+                        /* while (send_len < file_size) {                         */
+                        /*     memset(buf, '\0', BUF_LEN);                        */
+                        /*     ret = ReadN(cur_user_info->file_fd, buf, BUF_LEN); */
+                        /*     if (ret == 0) {                                    */
+                        /*         close(cur_user_info->file_fd);                 */
+                        /*         cur_user_info->send_flag = SEND_OVER;          */
+                        /*         break;                                         */
+                        /*     }                                                  */
+                        /*     if (Send(cur_user_info->sock_fd, buf, ret, 0)) {   */
+
+                        /*     }                                                  */
+                        /*     send_len += ret;                                   */
+                        /* }                                                      */
                         break;
                     case SEND_OVER:
                         break;
@@ -137,7 +150,7 @@ void *DoSend(void *ptr) {
         int nfds = epoll_wait(epollfd, events, EPOLL_SIZE, TIME_WAIT);
         int i;
         for (i = 0; i < nfds; ++i) {
-            cur_user_info = (UserInfo *)&events[i].data.ptr;
+            cur_user_info = (UserInfo *)events[i].data.ptr;
             ReqHead rsp_head;
             if (Recv(cur_user_info->sock_fd,
                      (void *)&rsp_head, sizeof(ReqHead), 0) < 0) {

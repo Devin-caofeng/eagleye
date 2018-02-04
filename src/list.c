@@ -55,7 +55,7 @@ List *DelFromList(List *head, void *data) {
         return NULL;
     }
     tmp = head;
-    while(tmp->next) tmp = tmp->next;
+    while(tmp->prev) tmp = tmp->prev;
     ForEachList(tmp, list) {
         if (list->data == data) {
             //若当前节点就是头结点，则将当前节点的下一个节点返回作为头结点

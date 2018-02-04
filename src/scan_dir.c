@@ -8,13 +8,13 @@
 #include <fcntl.h>
 
 #include "../include/log.h"
+#include "../include/comm.h"
 #include "../include/list.h"
 #include "../include/user.h"
 #include "../include/queue.h"
 #include "../include/monitor.h"
 #include "../include/scan_dir.h"
 
-#define CMD_LEN 1024
 
 static int CheckIsUse(const char *file) {
     if (file == NULL) return -1;
@@ -51,7 +51,7 @@ static int ScanDir(const char *path, UserInfo *head) {
             continue;
         }
 
-        char buf[PAHT_LEN] = { '\0' };
+        char buf[PATH_LEN] = { '\0' };
         snprintf(buf, sizeof(buf) - 1, "%s/%s", path, dir_ent->d_name);
         if (dir_ent->d_type == 4) {
             ScanDir(buf, head);

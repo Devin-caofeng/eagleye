@@ -1,13 +1,14 @@
-#ifndef __CTRL_H__
-#define __CTRL_H__
+#ifndef CTRL_H__
+#define CTRL_H__
 
-#define COMMAND_LEN 66
+#include "comm.h"
 
-struct Command {
+
+typedef struct command {
     char name[COMMAND_LEN];
-    struct Command *next;
-};
+    struct command *next;
+} Command;
 
 int startCtrlThread();
 
-#endif /* __CTRL_H__ */
+#endif /* CTRL_H__ */

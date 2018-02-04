@@ -3,6 +3,7 @@
 
 
 #include "queue.h"
+#include "comm.h"
 
 enum Status {
     START = 0,
@@ -16,10 +17,10 @@ enum SendFlag {
 };
 
 typedef struct {
-    char dir[256];
-    char name[18];
-    char passwd[20];
-    char send_file_name[256];
+    char dir[PATH_LEN];
+    char name[NAME_LEN];
+    char passwd[PASSWD_LEN];
+    char send_file_name[FILE_NAME_LEN];
 
     int is_login;
     int is_start;

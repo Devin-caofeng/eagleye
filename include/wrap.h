@@ -1,5 +1,5 @@
-#ifndef _WRAP_H_
-#define _WRAP_H_
+#ifndef WRAP_H__
+#define WRAP_H__
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -34,4 +34,4 @@ ssize_t WriteN(int fd, const void *vptr, size_t n);
 size_t ReadLine(int fd, void *vptr, ssize_t max_len);
 
 
-#endif /* _WRAP_H_ */
+#endif /* WRAP_H__ */

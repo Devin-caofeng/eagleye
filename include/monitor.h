@@ -1,21 +1,19 @@
 #ifndef MONITOR_H__
 #define MONITOR_H__
 
-#include <stdint.h>
-
 #include "./list.h"
 #include "./queue.h"
+#include "comm.h"
 
-#define NAME_LEN    18
-#define PASSWD_LEN  20
-#define PATH_LEN    1024
 
 // 定义描述命令类型的枚举
 enum CmdType {
     REQ_LOGIN = 0,       // 请求登录
     RSP_LOGIN,           // 回复登录请求
     REQ_FILE,            // 请求文件
-    RSP_FILE             // 回复文件请求
+    RSP_FILE,            // 回复文件请求
+    SEND_FILE,
+    RECV_FILE_SUCC
 };
 
 // 请求头信息
