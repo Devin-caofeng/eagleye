@@ -44,7 +44,7 @@ void Connect(int fd, const struct sockaddr *sa, socklen_t sa_len) {
 }
 
 ssize_t Recv(int fd, void *buf, ssize_t len, int flags) {
-    ssize_t n;
+    ssize_t n = 0;
 again:
     if ((n = recv(fd, buf, len, flags)) == -1) {
         if (errno == EAGAIN || errno == EINTR) goto again;

@@ -13,17 +13,21 @@
 
 #include "../include/log.h"
 #include "../include/list.h"
+#include "../include/recv.h"
 #include "../include/user.h"
 #include "../include/wrap.h"
 #include "../include/queue.h"
 #include "../include/monitor.h"
 
-int RecvHead(UserInfo *user_info_node) {
+#define Print printf("%s->%d\n", __FILE__, __LINE__);
+
+static int RecvHead(UserInfo *user_info_node) {
     ReqHead req_head;
     if (Recv(user_info_node->sock_fd, &req_head, sizeof(req_head), 0) == -1) {
         ERR("%s:%d: recv client req head error\n", __FILE__, __LINE__);
         return -1;
     }
+
     if (req_head.type != SEND_FILE) {
         ERR("%s:%d: recv client req head type != EEND_FILE error\n",
              __FILE__, __LINE__);
@@ -35,6 +39,11 @@ int RecvHead(UserInfo *user_info_node) {
         ERR("%s:%d: recv client file head error\n", __FILE__, __LINE__);
         return -1;
     }
+
+    user_info_node->file_len = req_file.file_len;
+    /* strncpy(user_info_node->send_file_name,        */
+    /*         req_file.path, strlen(req_file.path)); */
+    strcpy(user_info_node->send_file_name, "/home/cf/git/monitor/temp/t");
 
     return 0;
 }
@@ -75,48 +84,62 @@ void *DoRecv(void *ptr) {
                             cur_user_info->send_flag = SEND_OVER;
                             break;
                         }
+
                         cur_user_info->file_fd =
-                            open(cur_user_info->send_file_name,
-                                 O_WRONLY | O_CREAT, 0664);
+                            open("/home/cf/git/monitor/temp/t",
+                                 O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                            /* open(cur_user_info->send_file_name, */
+                            /*      O_WRONLY | O_CREAT, 0664);     */
                         if (cur_user_info->file_fd < 0) {
                             ERR("%s:%d: create file error\n",
                                  __FILE__, __LINE__);
                             break;
                         }
+
+                        cur_user_info->sfile_len = 0;
                         cur_user_info->send_flag = SEND_BODY;
                         break;
                     case SEND_BODY:
-                        memset(buf, '\0', BUF_LEN);
-                        ret = Recv(cur_user_info->sock_fd, buf, BUF_LEN, 0);
-                        if (ret < 0) {        // 接受客户端上传数据失败
-                            cur_user_info->send_flag = SEND_OVER;
-                            ERR("%s:%d: recv client file error\n",
-                                 __FILE__, __LINE__);
-                            break;
-                        }
-                        else if (ret == 0) {  // 客户端发送完毕（一个文件）
-                            cur_user_info->send_flag = SEND_OVER;
-                            break;
-                        }
+                        if (cur_user_info->sfile_len <
+                                cur_user_info->file_len) {
+                            memset(buf, '\0', BUF_LEN);
+                            ret = Recv(cur_user_info->sock_fd, buf, BUF_LEN, 0);
+                            printf("serv: recv %d byte\n", ret);
+                            cur_user_info->sfile_len += ret;
+                            if (ret < 0) {        // 接受客户端上传数据失败
+                                cur_user_info->send_flag = SEND_OVER;
+                                ERR("%s:%d: recv client file error\n",
+                                     __FILE__, __LINE__);
+                                break;
+                            }
+                            else if (ret == 0) {  // 客户端发送完毕（一个文件）
+                                cur_user_info->send_flag = SEND_OVER;
+                                break;
+                            }
 
-                        if (Write(cur_user_info->file_fd, buf, ret) < 0) {
-                            ERR("%s:%d: save client file error\n",
-                                 __FILE__, __LINE__);
+                            ret = Write(cur_user_info->file_fd, buf, ret);
+                            printf("serv: save %d byte\n", ret);
+                            if (ret < 0) {
+                                ERR("%s:%d: save client file error\n",
+                                     __FILE__, __LINE__);
+                            }
+                        }
+                        else {
+                            cur_user_info->send_flag = SEND_OVER;
                         }
                         break;
                     case SEND_OVER:
+                        WriteOne(cur_user_info->busy_que,
+                                 char, cur_user_info->send_file_name);
+                        cur_user_info->send_flag = SEND_HEAD;
+                        DBG("%s:%d: file:[%s] save success",
+                             __FILE__, __LINE__,cur_user_info->send_file_name);
+
                         break;
                     default:
                         break;
                 }
             }
-
-            //
-            if (cur_user_info->send_flag == SEND_OVER) {
-                cur_user_info->send_flag = SEND_HEAD;
-                DBG("file:[%s] save success", cur_user_info->send_file_name);
-            }
-
         }
     }
 

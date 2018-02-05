@@ -51,9 +51,8 @@ List *DelFromList(List *head, void *data) {
     List *list;
     List *tmp;
 
-    if (head == NULL) {
-        return NULL;
-    }
+    if (head == NULL)  return NULL;
+
     tmp = head;
     while(tmp->prev) tmp = tmp->prev;
     ForEachList(tmp, list) {
@@ -77,17 +76,6 @@ List *DelFromList(List *head, void *data) {
         }
     }
 
-            /* if (cur == head) {           */
-            /*     new_head = head->next;   */
-            /*     cur->next->prev = NULL;  */
-            /*     free(cur->data);         */
-            /*     free(cur);               */
-            /* }                            */
-            /* List *temp = cur;            */
-            /* cur->next->prev = cur->prev; */
-            /* cur->prev->next = cur->next; */
-            /* free(temp->data);            */
-            /* free(temp);                  */
     return tmp;
 }
 

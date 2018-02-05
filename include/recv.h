@@ -1,5 +1,5 @@
-#ifndef SEND_H__
-#define SEND_H__
+#ifndef RECV_H__
+#define RECV_H__
 
 
 int StartRecvThread();

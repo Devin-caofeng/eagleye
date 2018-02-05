@@ -1,27 +1,27 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <signal.h>
 #include <pthread.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
+#include <libconfig.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <libconfig.h>
 
-#include "../include/scan_dir.h"
-#include "../include/monitor.h"
-#include "../include/queue.h"
+#include "../include/log.h"
 #include "../include/list.h"
 #include "../include/send.h"
 #include "../include/user.h"
 #include "../include/wrap.h"
-#include "../include/ctrl.h"
-#include "../include/log.h"
+#include "../include/recv.h"
+#include "../include/queue.h"
+#include "../include/monitor.h"
+#include "../include/scan_dir.h"
 
 #define MAX_LISTEN 1024
 #define ADDR_LEN   128
@@ -37,7 +37,7 @@ static int  serv_port = -1;
 static char log_file[FILE_LEN];
 
 List *login_send = NULL;
-List *no_login= NULL;
+List *no_login = NULL;
 
 
 int SetNonblock(int fd);
@@ -64,7 +64,10 @@ int main(int argc, char *argv[]) {
         if (OpenLog(log_file, "o_cat") < 0) return -1;
     }
 
-    StartScanDirThread(NULL);
+
+    StartRecvThread();
+
+    // CheckFile();
 
     StartSendThread();
 
@@ -174,7 +177,7 @@ int CheckLoginRequest(int sockfd, UserInfo *user_info) {
     rsp_comm.type = RSP_LOGIN;
     rsp_comm.len = 0;
     if (Send(sockfd, (char *)&rsp_comm, sizeof(rsp_comm), 0) < 0) {
-        ERR("send request head error!");
+        ERR("send response head error!");
         return -1;
     }
 
@@ -197,7 +200,7 @@ int ListenLogin() {
 
     Bind(listenfd, (SA *)&serv_addr, sizeof(serv_addr));
 
-    Listen(listenfd, BACK_LOG);
+    Listen(listenfd, MAX_LISTEN);
 
     SetNonblock(listenfd);
 
@@ -216,27 +219,27 @@ int ListenLogin() {
         List *cur_list_node = NULL;
         UserInfo *cur_user_info = NULL;
 
-        // 遍历还未成功登录的用户链表
+        // 遍历已连接但是还未登录的用户链表
         for (cur_list_node = no_login;
                  cur_list_node != NULL;
                  cur_list_node = cur_list_node->next) {
             cur_user_info = (UserInfo *)cur_list_node->data;
-            time_t t = time(NULL);
+//            time_t t = time(NULL);
 
-            // 建立连接后，三秒内还未成功登录则从监听描述符集合中删除，并关闭
-            // 此用户打开的文件描述符，最后从未成功登录链表中移除
-            if ((t - cur_user_info->conn_time) > 66) {
-                epoll_ctl(epollfd, EPOLL_CTL_DEL, cur_user_info->sock_fd, NULL);
-                close(cur_user_info->file_fd);
-                free(cur_user_info->ptr);
-                no_login = DelFromList(no_login, cur_user_info);
-                ERR("client login time out");
-            }
+            // 建立连接后，三秒内还未成功登录则从监听描述符集合中删除，并从未登录链表中移除
+            /* if ((t - cur_user_info->conn_time) < 0) {                            */
+            /*     epoll_ctl(epollfd, EPOLL_CTL_DEL, cur_user_info->sock_fd, NULL); */
+            /*     no_login = DelFromList(no_login, cur_user_info);                 */
+            /*     free(cur_user_info->ptr);                                        */
+            /*     free(cur_user_info->busy_que);                                   */
+            /*     free(cur_user_info->free_que);                                   */
+            /*     free(cur_user_info);                                             */
+            /*     DBG("client login time out");                                    */
+            /* }                                                                    */
         }
 
-        int nfds = epoll_wait(epollfd, events, MAX_LISTEN, 3000);
+        int nfds = epoll_wait(epollfd, events, MAX_LISTEN, TIME_WAIT);
         if (nfds < 0) {
-            usleep(1000);
             continue;
         }
         else if (nfds == 0) {
@@ -267,19 +270,19 @@ int ListenLogin() {
             else if (events[i].events & EPOLLIN) {
                 UserInfo *new_user = (UserInfo *)events[i].data.ptr;
                 if (CheckLoginRequest(new_user->sock_fd, new_user) < 0) {
-                    epoll_ctl(epollfd, EPOLL_CTL_DEL, new_user->sock_fd, NULL);
-                    close(new_user->file_fd);
+                    epoll_ctl(epollfd, EPOLL_CTL_DEL,
+                              new_user->sock_fd, &event);
                     no_login = DelFromList(no_login, new_user);
+                    free(new_user->ptr);
+                    free(cur_user_info->busy_que);
+                    free(cur_user_info->free_que);
                     free(new_user);
                 }
                 no_login = DelFromList(no_login, new_user);
                 login_send = AddToListTail(login_send, new_user);
-                epoll_ctl(epollfd, EPOLL_CTL_DEL, new_user->sock_fd, NULL);
+                epoll_ctl(epollfd, EPOLL_CTL_DEL, new_user->sock_fd, &event);
             }
             else {
-                UserInfo *new_user = (UserInfo *)events[i].data.ptr;
-                epoll_ctl(epollfd, EPOLL_CTL_DEL, new_user->sock_fd, NULL);
-                close(new_user->file_fd);
             }
         }
     }
