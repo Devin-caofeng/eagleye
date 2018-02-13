@@ -22,6 +22,7 @@
 #include "../include/queue.h"
 #include "../include/monitor.h"
 #include "../include/scan_dir.h"
+#include "../include/mysql_db.h"
 
 #define MAX_LISTEN 1024
 #define ADDR_LEN   128
@@ -170,8 +171,24 @@ int CheckLoginRequest(int sockfd, UserInfo *user_info) {
         return -1;
     }
     DBG("login client:[%s-%s]", req_login.user_name, req_login.user_passwd);
-    strcpy(user_info->dir, req_login.user_path);
-    // 从数据库中查询
+
+    strcpy(user_info->name, req_login.user_name);
+    strcpy(user_info->passwd, req_login.user_passwd);
+    strcpy(user_info->group, req_login.user_group);
+
+    if (req_login.regis == 1) {
+        // 向数据库中添加新用户信息
+        if (InsertUserToDB(&req_login) != 0) {
+            ERR("create ner user error");
+            return -1;
+        }
+    }
+    else {
+        if (CheckUserInfoFromDB(&req_login) != 0) {
+            // 登录失败，请检查账号密码
+            return -1;
+        }
+    }
 
     ReqHead rsp_comm;
     rsp_comm.type = RSP_LOGIN;

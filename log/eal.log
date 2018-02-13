@@ -1,0 +1,3 @@
+2018-02-13 00:25:33 DEBUG [3612:src/monitor.c:285] new conn:[192.168.223.133]-[47152],conn_time:[1518452733]
+2018-02-13 00:25:34 DEBUG [3612:src/monitor.c:173] login client:[À-]
+2018-02-13 00:25:34 ERROR [3612:src/mysql_db.c:58] select error

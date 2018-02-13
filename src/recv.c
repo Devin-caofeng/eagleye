@@ -19,24 +19,22 @@
 #include "../include/queue.h"
 #include "../include/monitor.h"
 
-#define Print printf("%s->%d\n", __FILE__, __LINE__);
 
 static int RecvHead(UserInfo *user_info_node) {
     ReqHead req_head;
     if (Recv(user_info_node->sock_fd, &req_head, sizeof(req_head), 0) == -1) {
-        ERR("%s:%d: recv client req head error\n", __FILE__, __LINE__);
+        ERR("recv client req head error\n");
         return -1;
     }
 
     if (req_head.type != SEND_FILE) {
-        ERR("%s:%d: recv client req head type != EEND_FILE error\n",
-             __FILE__, __LINE__);
+        ERR("recv client req head type != EEND_FILE error\n");
         return -1;
     }
 
     ReqFile req_file;
     if (Recv(user_info_node->sock_fd, &req_file, req_head.len, 0) == -1) {
-        ERR("%s:%d: recv client file head error\n", __FILE__, __LINE__);
+        ERR("recv client file head error\n");
         return -1;
     }
 
@@ -91,8 +89,7 @@ void *DoRecv(void *ptr) {
                             /* open(cur_user_info->send_file_name, */
                             /*      O_WRONLY | O_CREAT, 0664);     */
                         if (cur_user_info->file_fd < 0) {
-                            ERR("%s:%d: create file error\n",
-                                 __FILE__, __LINE__);
+                            ERR("create file error\n");
                             break;
                         }
 
@@ -108,8 +105,7 @@ void *DoRecv(void *ptr) {
                             cur_user_info->sfile_len += ret;
                             if (ret < 0) {        // 接受客户端上传数据失败
                                 cur_user_info->send_flag = SEND_OVER;
-                                ERR("%s:%d: recv client file error\n",
-                                     __FILE__, __LINE__);
+                                ERR("recv client file error\n");
                                 break;
                             }
                             else if (ret == 0) {  // 客户端发送完毕（一个文件）
@@ -120,8 +116,7 @@ void *DoRecv(void *ptr) {
                             ret = Write(cur_user_info->file_fd, buf, ret);
                             printf("serv: save %d byte\n", ret);
                             if (ret < 0) {
-                                ERR("%s:%d: save client file error\n",
-                                     __FILE__, __LINE__);
+                                ERR("save client file error\n");
                             }
                         }
                         else {
@@ -132,8 +127,8 @@ void *DoRecv(void *ptr) {
                         WriteOne(cur_user_info->busy_que,
                                  char, cur_user_info->send_file_name);
                         cur_user_info->send_flag = SEND_HEAD;
-                        DBG("%s:%d: file:[%s] save success",
-                             __FILE__, __LINE__,cur_user_info->send_file_name);
+                        DBG("file:[%s] save success",
+                             cur_user_info->send_file_name);
 
                         break;
                     default:
@@ -149,8 +144,7 @@ void *DoRecv(void *ptr) {
 int StartRecvThread() {
     pthread_t tid = pthread_create(&tid, NULL, DoRecv, NULL);
     if (tid != 0) {
-        ERR("%s:%d: create recv thread error:%s", strerror(errno),
-             __FILE__, __LINE__);
+        ERR("create recv thread error:%s", strerror(errno));
         return -1;
     }
 

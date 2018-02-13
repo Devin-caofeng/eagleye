@@ -23,11 +23,11 @@
 
 #define MAX_LINE      80
 #define SERV_PORT     9000
-#define SERV_IP       "192.168.223.133"
+#define SERV_IP       "192.168.42.128"
 
 typedef struct sockaddr SA;
 
-int Login(char *account[], int serv_fd);
+int Login(int num, char *account[], int serv_fd);
 int UploadFile(int serv_fd);
 
 int main(int argv, char *args[]) {
@@ -47,7 +47,7 @@ int main(int argv, char *args[]) {
 
     Connect(serv_fd, (SA *)&serv_addr, sizeof(serv_addr));
 
-    Login(args, serv_fd);
+    Login(argv, args, serv_fd);
 
     // 上传文件数据
     while (1) {
@@ -60,7 +60,7 @@ int main(int argv, char *args[]) {
     return 0;
 }
 
-int Login(char *account[], int serv_fd) {
+int Login(int argv, char *account[], int serv_fd) {
     // 发送登录请求
     ReqHead req_head;
     req_head.type = REQ_LOGIN;
@@ -74,7 +74,13 @@ int Login(char *account[], int serv_fd) {
     ReqLogin req_login;
     strcpy(req_login.user_name, account[1]);
     strcpy(req_login.user_passwd, account[2]);
-    strcpy(req_login.user_path, account[3]);
+    strcpy(req_login.user_group, account[3]);
+    if (argv > 4) {
+        // 检测是否注册
+        if (strcmp(account[4], "register") == 0) req_login.regis= 1;
+        else req_login.regis = 0;
+    }
+
     if (Send(serv_fd, (char *)&req_login, sizeof(req_login), 0) < 0) {
         perror("send req_login error");
         return -1;

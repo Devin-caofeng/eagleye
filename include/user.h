@@ -20,6 +20,8 @@ typedef struct {
     char dir[PATH_LEN];
     char name[NAME_LEN];
     char passwd[PASSWD_LEN];
+    char group[NAME_LEN];
+
     char send_file_name[FILE_NAME_LEN];
     int  file_len;
     int  sfile_len;
