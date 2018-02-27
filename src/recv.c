@@ -41,7 +41,9 @@ static int RecvHead(UserInfo *user_info_node) {
     user_info_node->file_len = req_file.file_len;
     /* strncpy(user_info_node->send_file_name,        */
     /*         req_file.path, strlen(req_file.path)); */
-    strcpy(user_info_node->send_file_name, "/home/cf/git/monitor/temp/t");
+    sprintf(user_info_node->send_file_name, "%s/%s",
+            user_info_node->dir, req_file.path);
+//    strcpy(user_info_node->send_file_name, "/home/cf/git/monitor/temp/t");
 
     return 0;
 }

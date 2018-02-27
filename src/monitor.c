@@ -176,6 +176,9 @@ int CheckLoginRequest(int sockfd, UserInfo *user_info) {
     strcpy(user_info->passwd, req_login.user_passwd);
     strcpy(user_info->group, req_login.user_group);
 
+    sprintf(user_info->dir, "/home/cf/git/monitor/temp/%s/%s",
+            user_info->group, user_info->name);
+
     if (req_login.regis == 1) {
         // 向数据库中添加新用户信息
         if (InsertUserToDB(&req_login) != 0) {
