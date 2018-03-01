@@ -26,4 +26,4 @@ cli_need = $(DIR)/cli.o $(DIR)/wrap.o
 
 .PHONY:clean
 clean:
-	-rm -rf $(OBJ) $(BIN) $(all)
+	-rm -rf $(OBJ) $(BIN)
